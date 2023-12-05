@@ -117,6 +117,40 @@ class DensityMapGenerator:
         dest_folder = self.dataset_root / 'ground_truth_anisotropy_1_4'
         post_fix = '' # 'anisotropy_1_4'
         self._generate_maps(self._map_for_oval_dataset, dest_folder, post_fix)
+
+    def _map_for_circle_dataset(self, lines, img_path):
+        image = cv2.imread(img_path)
+        density_map = np.zeros(image.shape[0:2])
+        for line in lines:
+            line_start = np.array([int(line["sx"]), int(line["sy"])])
+            line_end = np.array([int(line["ex"]), int(line["ey"])])
+
+            points = [line_start, line_end]
+            p3 = line_end - line_start
+            line_length = math.hypot(p3[0], p3[1])
+            if (line_length < 10):
+                print('warning: too short line label ', img_path)
+            
+            window_size_w = line_length
+            window_size_w = np.around(window_size_w) + 1 if np.around(window_size_w) % 2 == 0 else np.around(
+                window_size_w)
+            sigma_x = (((window_size_w / 2) - 0.5) / self.truncate_t) * 1.96 # changed 2.355 to 1.96 for bigger tolerance
+            sigma_y = sigma_x #changed sigma y to sigma x to make it a circle (essentially a dot with more coverage) and not an oval
+
+            sub_dmap = generate_density_map_anisotropy(
+                shape=image.shape, points=points, fx_sz=window_size_w, fy_sz=window_size_w, sigma=[sigma_x, sigma_y]
+            )
+
+            sub_dmap /= sub_dmap.sum()
+            density_map += sub_dmap
+            
+        return density_map
+
+
+    def generate_circle_dataset(self):
+        dest_folder = self.dataset_root / 'ground_truth_circle'
+        post_fix = '' # 'circle'
+        self._generate_maps(self._map_for_circle_dataset, dest_folder, post_fix)
     
     def _generate_maps(self, generator, dest_folder, post_fix):
         make_sure_folder_exists(dest_folder)
@@ -149,11 +183,17 @@ class DensityMapGenerator:
             
             with h5py.File(dest_file, 'w') as hf:
                 hf['density'] = positions
+        
+        print(num_manatee)
+        
+
     
     def generate(self):
         self.generate_dot_dataset()
         self.generate_line_dataset()
         self.generate_oval_dataset()
+        self.generate_circle_dataset()
+
 
 if __name__ == '__main__':
     generator = DensityMapGenerator()
