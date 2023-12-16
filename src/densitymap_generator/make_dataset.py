@@ -26,6 +26,7 @@ class DensityMapGenerator:
                 # only jpg image
                 if img_path.endswith(".jpg"):
                     img_paths.append(os.path.join(root, img_path))
+        #print(img_paths)
         return img_paths
     
     def _map_for_dot_dataset(self, lines, img_path):
