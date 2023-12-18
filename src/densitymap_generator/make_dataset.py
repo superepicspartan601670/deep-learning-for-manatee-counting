@@ -185,8 +185,6 @@ class DensityMapGenerator:
             with h5py.File(dest_file, 'w') as hf:
                 hf['density'] = positions
         
-        print(num_manatee)
-        
 
     
     def generate(self):
